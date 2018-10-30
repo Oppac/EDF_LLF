@@ -1,2 +1,2 @@
 # RTOS_EDF_LLF
-RTOS EDF vs LLF
+EDF vs LLF
