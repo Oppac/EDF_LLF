@@ -1,4 +1,5 @@
 import sys
+from numpy import lcm
 
 def get_data(input_file, offsets, wcets, periods):
     try:
@@ -17,6 +18,7 @@ def get_data(input_file, offsets, wcets, periods):
     except OSError:
         print('cannot open', input_file)
 
+
 def get_priorities(periods):
     priorities = []
     for i in range(len(periods)):
@@ -25,14 +27,10 @@ def get_priorities(periods):
         periods[min_deadline] = max(periods)+1
     return priorities
 
-def edf_feasibility_interval(offsets, wcets, periods):
-    interval = 0
-    for i in range(len(wcets)):
-        interval += wcets[i] / float(periods[i])
-    if interval > 1:
-        return -1
-    else:
-        return interval
+
+def edf_feasibility_interval(offsets, periods):
+    return max(offsets) + (2 * lcm.reduce(periods))
+
 
 def main():
     offsets = []
@@ -42,13 +40,11 @@ def main():
     if (str(sys.argv[1]) == "edf_interval"):
         get_data(sys.argv[2], offsets, wcets, periods)
         priorities = get_priorities(periods[:])
-        interval = edf_feasibility_interval(offsets, wcets, periods)
-        if interval == -1:
-            print("Not feasible")
-        else:
-            print("{},{}".format(0, interval))
+        interval = edf_feasibility_interval(offsets, periods)
+
         print(offsets, wcets, periods)
         print(priorities)
+        print("{},{}".format(0, interval))
 
 
 
