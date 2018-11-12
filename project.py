@@ -1,4 +1,3 @@
-
 import sys
 
 def get_data(input_file, offsets, wcets, periods):
@@ -18,14 +17,22 @@ def get_data(input_file, offsets, wcets, periods):
     except OSError:
         print('cannot open', input_file)
 
-def get_priorities(wcets):
+def get_priorities(periods):
     priorities = []
-    i = len(wcets)
-    for i in range(len(wcets)):
-        min_wcets = wcets.index(min(wcets))
-        priorities.append(min_wcets)
-        wcets[min_wcets] = max(wcets)+1
+    for i in range(len(periods)):
+        min_deadline = periods.index(min(periods))
+        priorities.append(min_deadline)
+        periods[min_deadline] = max(periods)+1
     return priorities
+
+def edf_feasibility_interval(offsets, wcets, periods):
+    interval = 0
+    for i in range(len(wcets)):
+        interval += wcets[i] / float(periods[i])
+    if interval > 1:
+        return -1
+    else:
+        return interval
 
 def main():
     offsets = []
@@ -34,7 +41,12 @@ def main():
 
     if (str(sys.argv[1]) == "edf_interval"):
         get_data(sys.argv[2], offsets, wcets, periods)
-        priorities = get_priorities(wcets[:])
+        priorities = get_priorities(periods[:])
+        interval = edf_feasibility_interval(offsets, wcets, periods)
+        if interval == -1:
+            print("Not feasible")
+        else:
+            print("{},{}".format(0, interval))
         print(offsets, wcets, periods)
         print(priorities)
 
