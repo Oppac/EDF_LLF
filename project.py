@@ -1,3 +1,4 @@
+import random
 import sys
 from numpy import lcm
 
@@ -31,20 +32,43 @@ def get_priorities(periods):
 def edf_feasibility_interval(offsets, periods):
     return max(offsets) + (2 * lcm.reduce(periods))
 
+def edf_utility(wcets, periods):
+    interval = 0
+    for i in range(len(wcets)):
+        interval += wcets[i] / float(periods[i])
+    return interval
+
+
+def draft_generator(tasks):
+    offsets = []
+    wcets = []
+    periods = []
+    for i in range(tasks):
+        offsets.append(random.randint(0, 10))
+        wcets.append(random.randint(0, 50))
+        periods.append(random.randint(50, 100))
+        utility = edf_utility(wcets, periods)
+    if utility > 0.65 and utility < 0.75:
+        print(offsets, wcets, periods)
+    else:
+        draft_generator(tasks)
 
 def main():
     offsets = []
     wcets = []
     periods = []
 
-    if (str(sys.argv[1]) == "edf_interval"):
-        get_data(sys.argv[2], offsets, wcets, periods)
-        priorities = get_priorities(periods[:])
-        interval = edf_feasibility_interval(offsets, periods)
+    if len(sys.argv) > 1:
+        if (str(sys.argv[1]) == "edf_interval"):
+            get_data(sys.argv[2], offsets, wcets, periods)
+            priorities = get_priorities(periods[:])
+            interval = edf_feasibility_interval(offsets, periods)
 
-        print(offsets, wcets, periods)
-        print(priorities)
-        print("{},{}".format(0, interval))
+            print(offsets, wcets, periods)
+            print(priorities)
+            print("{},{}".format(0, interval))
+    else:
+        draft_generator(6)
 
 
 
