@@ -44,7 +44,6 @@ def draft_generator(tasks, goal_utility, output):
     offsets, wcets, periods, gen_utility = new_system(tasks)
     while not (gen_utility > (goal_utility-0.01) and gen_utility < (goal_utility+0.01)):
         offsets, wcets, periods, gen_utility = new_system(tasks)
-    print(offsets, wcets, periods)
     output_system(offsets, wcets, periods, output)
 
 def output_system(offsets, wcets, periods, output):
@@ -90,6 +89,16 @@ def main():
                 draft_generator(nb_tasks, goal_utility, output_file)
             else:
                 print("Usage: python project.py gen nb_tasks utility output")
+        elif (str(sys.argv[1]) == "edf"):
+            if len(sys.argv) > 5:
+                pass
+            else:
+                print("Usage: python project.py edf input_file start stop")
+        elif (str(sys.argv[1]) == "llf"):
+            if len(sys.argv) > 5:
+                pass
+            else:
+                print("Usage: python project.py llf input_file start stop")
 
 start_time = time.time()
 main()
