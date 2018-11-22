@@ -107,7 +107,7 @@ class Scheduler():
 
 
 def get_data(input_file, tasks_list):
-    ''' Parse the data from the given input file'''
+    ''' Parse the data from the given input file.'''
     try:
         with open(input_file, 'r') as file:
             for line in file:
@@ -145,51 +145,55 @@ def get_data(input_file, tasks_list):
 #     return priorities
 
 def compute_lcm(periods):
-    '''Compute the lcm of the periods (Credit: Ananay Mital from Stack Overflow) '''
+    '''Compute the lcm of the periods (Credit: Ananay Mital from Stack Overflow).'''
     lcm = periods[0]
     for i in periods[1:]:
         lcm = int((lcm * i) / gcd(lcm, i))
     return lcm
 
 def edf_feasibility_interval(tasks_list):
-    '''Return the feasibility interval of the list of tasks'''
+    '''Return the feasibility interval of the list of tasks.'''
     offsets = [tasks_list[i].offset for i in range(len(tasks_list))]
     periods = [tasks_list[i].period for i in range(len(tasks_list))]
     return max(offsets) + (2 * compute_lcm(periods))
 
-def edf_utility(wcets, periods):
-    interval = 0
-    for i in range(len(wcets)):
-        interval += wcets[i] / float(periods[i])
-    return interval
-
 ###############################################################################################
 
-def draft_generator(tasks, goal_utility, output):
+def generator(tasks, goal_utility, output):
+    '''Generate a new system until one has the required utility then write it to the output file.'''
     offsets, wcets, periods, gen_utility = new_system(tasks)
     while not (gen_utility > (goal_utility-0.01) and gen_utility < (goal_utility+0.01)):
         offsets, wcets, periods, gen_utility = new_system(tasks)
     output_system(offsets, wcets, periods, output)
 
 def output_system(offsets, wcets, periods, output):
+    '''Write the generated system to the output file. Overwrite if necessary.'''
     try:
         with open(output, 'w+') as file:
             for line in range(len(offsets)):
                 file.write("{}; {}; {}\n".format(
                 offsets[line], wcets[line], periods[line]))
     except OSError:
-        print('cannot open', output)
+        sys.exit("Error: Cannot open {}".format(output))
 
 def new_system(tasks):
+    '''Generate a new system. Limits are arbiraries.'''
     offsets = []
     wcets = []
     periods = []
     for i in range(tasks):
-        offsets.append(random.randint(0, 2))
-        wcets.append(random.randint(1, 3))
-        periods.append(random.randint(8, 20))
+        offsets.append(random.randint(0, 10))
+        wcets.append(random.randint(1, 50))
+        periods.append(random.randint(8, 100))
         gen_utility = edf_utility(wcets, periods)
     return offsets, wcets, periods, gen_utility
+
+def edf_utility(wcets, periods):
+    '''Calculate the utility of the system.'''
+    interval = 0
+    for i in range(len(wcets)):
+        interval += wcets[i] / float(periods[i])
+    return interval
 
 ############################################################################################
 
@@ -200,26 +204,37 @@ def start_scheduler(tasks, start, end):
     edf_sceduler.scheduling()
     edf_sceduler.end_msg()
 
+def options_error():
+    print("Edf interval: python project.py edf_interval input_file")
+    print("Generator: python project.py gen nb_tasks utility output_file")
+    print("Scheduler: python project.py edf|llf input_file start stop")
+
 def main():
     tasks_list = []
 
     if len(sys.argv) > 1:
+
+        #Edf interval option
         if (str(sys.argv[1]) == "edf_interval"):
             if len(sys.argv) > 2:
                 get_data(sys.argv[2], tasks_list)
-                #priorities = edf_priorities(periods[:])
-                interval = edf_feasibility_interval(tasks_list)
-                print("{},{}".format(0, interval))
+                print("{},{}".format(0, edf_feasibility_interval(tasks_list)))
             else:
                 print("Usage: python project.py edf_interval input_file")
+
+        #Generator option
         elif (str(sys.argv[1]) == "gen"):
             if len(sys.argv) > 3:
-                nb_tasks = int(sys.argv[2])
-                goal_utility = float(sys.argv[3])/100
-                output_file = sys.argv[4]
-                draft_generator(nb_tasks, goal_utility, output_file)
+                try:
+                    nb_tasks = int(sys.argv[2])
+                    goal_utility = float(sys.argv[3])/100
+                except:
+                    sys.exit("Number of tasks and utility must be numbers")
+                generator(nb_tasks, goal_utility, sys.argv[4])
             else:
                 print("Usage: python project.py gen nb_tasks utility output_file")
+
+        #EDF scheduler option
         elif (str(sys.argv[1]) == "edf"):
             if len(sys.argv) > 4:
                 get_data(sys.argv[2], tasks_list)
@@ -240,22 +255,21 @@ def main():
                     print("Error during the scheduling")
             else:
                 print("Usage: python project.py edf input_file start stop")
+
+        #LLF scheduler option
         elif (str(sys.argv[1]) == "llf"):
             if len(sys.argv) > 4:
                 pass
             else:
                 print("Usage: python project.py llf input_file start stop")
+
         else:
             print("Unknown option", sys.argv[1])
-            print("Edf interval: python project.py edf_interval input_file")
-            print("Generator: python project.py gen nb_tasks utility output_file")
-            print("Scheduler: python project.py edf|llf input_file start stop")
+            options_error()
     else:
-        print("Edf interval: python project.py edf_interval input_file")
-        print("Generator: python project.py gen nb_tasks utility output_file")
-        print("Scheduler: python project.py edf|llf input_file start stop")
+        options_error()
 
 if __name__ == "__main__":
-    #start_time = time.time()
+    start_time = time.time()
     main()
-    #print("--- %s seconds ---" %(time.time() - start_time))
+    print("--- %s seconds ---" %(time.time() - start_time))
