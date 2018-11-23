@@ -8,20 +8,21 @@ class Task():
         self.offset = offset
         self.wcet = wcet
         self.period = period
-        self.next_deadline = period
+        self.next_deadline = period + offset
         self.id = id
 
         self.completed = False
         self.already_done = 0
         self.job_start = 0
         self.job_nb = 0
-        ### TODO #####
-        self.priority = self.next_deadline
-        ##########
+        self.scheduler = ""
+        self.priority = 0
 
-    ### ???? ####
-    def update_priority(self):
-        self.priority = self.next_deadline
+    def update_priority(self, time):
+        if self.scheduler == "edf":
+            self.priority = self.period - self.already_done
+        elif self.scheduler == "llf":
+            self.priority = self.next_deadline - (time + (self.wcet - self.already_done))
 
     def check_task_correctness(self):
         ''' Check if the parsed tasks pass basic correctness tests '''
@@ -41,12 +42,14 @@ class Task():
 #######################################################################################
 
 class Scheduler():
-    def __init__(self, tasks, start, end):
+    def __init__(self, tasks, start, end, type):
         self.preemptions = 0
         self.start = start
         self.end = end
         self.tasks = tasks
-        self.previous_task = self.get_highest_priority()
+        self.type = type
+        for task in tasks: task.scheduler = type
+        self.previous_job = self.get_highest_priority(0)
 
     def start_msg(self):
         print("TODO")
@@ -55,16 +58,16 @@ class Scheduler():
     def end_msg(self):
         print("End: {} preemptions".format(self.preemptions))
 
-    def get_highest_priority(self):
+    def get_highest_priority(self, time):
         priorities = self.tasks[:]
         try:
             hp_task = min(priorities, key=lambda task: task.priority)
-            while hp_task.completed:
+            while hp_task.completed or time < hp_task.offset:
                 priorities.remove(hp_task)
                 hp_task = min(priorities, key=lambda task: task.priority)
             return hp_task
         except:
-            return "empty"
+            return None
 
     def check_deadlines(self, time):
         for i in range(len(self.tasks)):
@@ -74,40 +77,42 @@ class Scheduler():
                          time, self.tasks[i].id, self.tasks[i].job_nb))
                     #return True
                 else:
-                    self.tasks[i].next_deadline += self.tasks[i].period
+                    self.tasks[i].next_deadline += (self.tasks[i].period + self.tasks[i].offset)
                     self.tasks[i].job_nb += 1
                     self.tasks[i].completed = False
+                    print("{}: Arrival of job {}J{}".format(time, self.tasks[i].id, self.tasks[i].job_nb))
         return False
 
     def schedule(self, time, task):
-        if task != "empty":
-            if not task.id is self.previous_task.id:
-                if not self.previous_task.completed:
-                    print("{}-{}: {}J{} Hello".format(self.previous_task.job_start,
-                        time+1, self.previous_task.id, self.previous_task.job_nb))
-                    self.previous_task.job_start = time
-                    self.preemptions += 1
-            if task.already_done == 0:
-                task.job_start = time
-                print("{}: Arrival of job {}J{}".format(time, task.id, task.job_nb))
-            task.already_done += 1
-            if task.already_done == task.wcet:
-                task.completed = True
-                task.already_done = 0
-                print("{}-{}: {}J{} ".format(task.job_start,
-                    time+1, task.id, task.job_nb))
-            return task
-        else:
-            return self.previous_task
+        task.already_done += 1
+        if task.already_done == task.wcet:
+            task.completed = True
+            task.already_done = 0
+            print("{}-{}: {}J{} ".format(task.job_start,
+                time+1, task.id, task.job_nb))
+        return task
 
 
     def scheduling(self):
         for time in range(self.start, self.end):
-            for task in self.tasks:
-                task.update_priority()
+            for i in range(len(self.tasks)):
+                if time == self.tasks[i].offset:
+                    print("{}: Arrival of job {}J{}".format(time, self.tasks[i].id, self.tasks[i].job_nb))
+            new_job = self.get_highest_priority(time)
+            if new_job is not None:
+                if new_job.id is not self.previous_job.id:
+                    if not self.previous_job.completed:
+                        print("{}-{}: {}J{}".format(self.previous_job.job_start,
+                            time, self.previous_job.id, self.previous_job.job_nb))
+                        self.preemptions += 1
+                    new_job.job_start = time
+                    self.previous_job = self.schedule(time, new_job)
+                else:
+                    self.previous_job = self.schedule(time, new_job)
             if self.check_deadlines(time):
                 return
-            self.previous_task = self.schedule(time, self.get_highest_priority())
+            for task in self.tasks:
+                task.update_priority(time)
 
 ##########################################################################################
 
@@ -236,7 +241,7 @@ def main():
                 except:
                     sys.exit("Invalid start and end times")
                 #try:
-                edf_sceduler = Scheduler(tasks_list, start, end)
+                edf_sceduler = Scheduler(tasks_list, start, end, "edf")
                 edf_sceduler.start_msg()
                 edf_sceduler.scheduling()
                 edf_sceduler.end_msg()
@@ -248,7 +253,22 @@ def main():
         #LLF scheduler option
         elif (str(sys.argv[1]) == "llf"):
             if len(sys.argv) > 4:
-                pass
+                get_data(sys.argv[2], tasks_list)
+                try:
+                    start = int(sys.argv[3])
+                    end = int(sys.argv[4])
+                    if (start < 0) or (end < start):
+                        raise
+                except:
+                    sys.exit("Invalid start and end times")
+
+                #try:
+                edf_sceduler = Scheduler(tasks_list, start, end, "llf")
+                edf_sceduler.start_msg()
+                edf_sceduler.scheduling()
+                edf_sceduler.end_msg()
+                #except:
+                    #print("Error during the scheduling")
             else:
                 print("Usage: python project.py llf input_file start stop")
 
