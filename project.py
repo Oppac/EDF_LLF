@@ -8,16 +8,20 @@ class Task():
         self.offset = offset
         self.wcet = wcet
         self.period = period
-        #self.priority = self.offset + (job_nb-1) * period
+        self.next_deadline = period
         self.id = id
 
         self.completed = False
-        self.task_start_time = 0
         self.already_done = 0
+        self.job_start = 0
         self.job_nb = 0
+        ### TODO #####
+        self.priority = self.next_deadline
+        ##########
 
-    def change_priority(self):
-        self.priority = self.offset + (job_nb-1) * initial_period
+    ### ???? ####
+    def update_priority(self):
+        self.priority = self.next_deadline
 
     def check_task_correctness(self):
         ''' Check if the parsed tasks pass basic correctness tests '''
@@ -37,13 +41,12 @@ class Task():
 #######################################################################################
 
 class Scheduler():
-    def __init__(self, start, end, tasks):
+    def __init__(self, tasks, start, end):
         self.preemptions = 0
         self.start = start
         self.end = end
         self.tasks = tasks
-        self.pending_tasks = [tasks[0], tasks[2], tasks[1]]
-        self.current_pending = self.pending_tasks[0]
+        self.previous_task = self.get_highest_priority()
 
     def start_msg(self):
         print("TODO")
@@ -52,56 +55,59 @@ class Scheduler():
     def end_msg(self):
         print("End: {} preemptions".format(self.preemptions))
 
-    def update_priorities(self):
-            priorities = []
-            periods = [self.tasks[i].period for i in range(len(self.tasks))]
-            for i in range(len(periods)):
-                min_deadline = periods.index(min(periods))
-                priorities.append(min_deadline)
-                periods[min_deadline] = max(periods)+1
-            return priorities
+    def get_highest_priority(self):
+        priorities = self.tasks[:]
+        try:
+            hp_task = min(priorities, key=lambda task: task.priority)
+            while hp_task.completed:
+                priorities.remove(hp_task)
+                hp_task = min(priorities, key=lambda task: task.priority)
+            return hp_task
+        except:
+            return "empty"
 
     def check_deadlines(self, time):
         for i in range(len(self.tasks)):
-            if self.tasks[i].period == time:
+            if self.tasks[i].next_deadline == time:
                 if not self.tasks[i].completed:
-                    print("{}: Task {}J{} misses a deadline".format(
-                          time, self.tasks[i].name, self.tasks[i].job_nb))
-                    return True
+                    print("{}: Job {}J{} misses a deadline".format(
+                         time, self.tasks[i].id, self.tasks[i].job_nb))
+                    #return True
                 else:
-                    self.tasks[i].period += self.tasks[i].period
+                    self.tasks[i].next_deadline += self.tasks[i].period
                     self.tasks[i].job_nb += 1
                     self.tasks[i].completed = False
-                    print("{}-{}: Task {}J{} ".format(self.tasks[i].task_start_time,
-                          time+1, self.tasks[i].name, self.tasks[i].job_nb))
         return False
 
-    def schedule(self, time):
-        for i in range(len(self.tasks)):
-            if not self.pending_tasks[0].completed:
-                if self.pending_tasks[0].already_done == 0:
-                    self.pending_tasks[0].task_start_time = time
-                    print("{}: Arrival of task {}J{}".format(
-                          time, self.pending_tasks[0].name, self.pending_tasks[0].job_nb))
-                self.pending_tasks[0].already_done += 1
-                if self.pending_tasks[0].already_done == self.pending_tasks[0].wcet:
-                    self.pending_tasks[0].completed = True
-                    self.pending_tasks[0].already_done = 0
-                    break
-                else:
-                    break
-            else:
-                self.pending_tasks.append(self.pending_tasks.pop(
-                             self.pending_tasks.index(self.pending_tasks[0])))
+    def schedule(self, time, task):
+        if task != "empty":
+            if not task.id is self.previous_task.id:
+                if not self.previous_task.completed:
+                    print("{}-{}: {}J{} Hello".format(self.previous_task.job_start,
+                        time+1, self.previous_task.id, self.previous_task.job_nb))
+                    self.previous_task.job_start = time
+                    self.preemptions += 1
+            if task.already_done == 0:
+                task.job_start = time
+                print("{}: Arrival of job {}J{}".format(time, task.id, task.job_nb))
+            task.already_done += 1
+            if task.already_done == task.wcet:
+                task.completed = True
+                task.already_done = 0
+                print("{}-{}: {}J{} ".format(task.job_start,
+                    time+1, task.id, task.job_nb))
+            return task
+        else:
+            return self.previous_task
 
 
     def scheduling(self):
-        print(self.update_priorities())
         for time in range(self.start, self.end):
-            self.schedule(time)
+            for task in self.tasks:
+                task.update_priority()
             if self.check_deadlines(time):
                 return
-            #update_priorities()
+            self.previous_task = self.schedule(time, self.get_highest_priority())
 
 ##########################################################################################
 
@@ -134,15 +140,6 @@ def get_data(input_file, tasks_list):
         sys.exit("Error: Cannot open {}".format(input_file))
 
 ############################################################################################################
-
-# def edf_priorities(periods):
-#     priorities = []
-#     tmp_periods = periods[:]
-#     for i in range(len(tmp_periods)):
-#         min_deadline = tmp_periods.index(min(tmp_periods))
-#         priorities.append(min_deadline)
-#         tmp_periods[min_deadline] = max(tmp_periods)+1
-#     return priorities
 
 def compute_lcm(periods):
     '''Compute the lcm of the periods (Credit: Ananay Mital from Stack Overflow).'''
@@ -197,13 +194,6 @@ def edf_utility(wcets, periods):
 
 ############################################################################################
 
-def start_scheduler(tasks, start, end):
-
-    edf_sceduler = Scheduler(start, end, tasks)
-    edf_sceduler.start_msg()
-    edf_sceduler.scheduling()
-    edf_sceduler.end_msg()
-
 def options_error():
     print("Edf interval: python project.py edf_interval input_file")
     print("Generator: python project.py gen nb_tasks utility output_file")
@@ -244,15 +234,14 @@ def main():
                     if (start < 0) or (end < start):
                         raise
                 except:
-                    sys.exit("Please, enter valid start and end times")
-
-                try:
-                    priorities = edf_priorities(periods)
-                    tasks = [Task(offsets[i], wcets[i], periods[i], priorities[i], "T"+str(i))
-                    for i in range(len(offsets))]
-                    start_scheduler(tasks, start, end)
-                except:
-                    print("Error during the scheduling")
+                    sys.exit("Invalid start and end times")
+                #try:
+                edf_sceduler = Scheduler(tasks_list, start, end)
+                edf_sceduler.start_msg()
+                edf_sceduler.scheduling()
+                edf_sceduler.end_msg()
+                #except:
+                    #print("Error during the scheduling")
             else:
                 print("Usage: python project.py edf input_file start stop")
 
@@ -270,6 +259,6 @@ def main():
         options_error()
 
 if __name__ == "__main__":
-    start_time = time.time()
+    #start_time = time.time()
     main()
-    print("--- %s seconds ---" %(time.time() - start_time))
+    #print("--- %s seconds ---" %(time.time() - start_time))
