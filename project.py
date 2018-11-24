@@ -230,7 +230,7 @@ def main():
                 print("Usage: python project.py gen nb_tasks utility output_file")
 
         #EDF scheduler option
-        elif (str(sys.argv[1]) == "edf"):
+        elif (str(sys.argv[1]) == "edf") or (str(sys.argv[1] == "llf")):
             if len(sys.argv) > 4:
                 get_data(sys.argv[2], tasks_list)
                 try:
@@ -240,38 +240,18 @@ def main():
                         raise
                 except:
                     sys.exit("Invalid start and end times")
-                #try:
-                edf_sceduler = Scheduler(tasks_list, start, end, "edf")
-                edf_sceduler.start_msg()
-                edf_sceduler.scheduling()
-                edf_sceduler.end_msg()
-                #except:
-                    #print("Error during the scheduling")
-            else:
-                print("Usage: python project.py edf input_file start stop")
-
-        #LLF scheduler option
-        elif (str(sys.argv[1]) == "llf"):
-            if len(sys.argv) > 4:
-                get_data(sys.argv[2], tasks_list)
                 try:
-                    start = int(sys.argv[3])
-                    end = int(sys.argv[4])
-                    if (start < 0) or (end < start):
-                        raise
+                    if sys.argv[1] == "edf":
+                        edf_sceduler = Scheduler(tasks_list, start, end, "edf")
+                    else:
+                        edf_sceduler = Scheduler(tasks_list, start, end, "llf")
+                    edf_sceduler.start_msg()
+                    edf_sceduler.scheduling()
+                    edf_sceduler.end_msg()
                 except:
-                    sys.exit("Invalid start and end times")
-
-                #try:
-                edf_sceduler = Scheduler(tasks_list, start, end, "llf")
-                edf_sceduler.start_msg()
-                edf_sceduler.scheduling()
-                edf_sceduler.end_msg()
-                #except:
-                    #print("Error during the scheduling")
+                    print("Error during the scheduling")
             else:
-                print("Usage: python project.py llf input_file start stop")
-
+                print("Usage: python project.py edf|llf input_file start stop")
         else:
             print("Unknown option", sys.argv[1])
             options_error()
