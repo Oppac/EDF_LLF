@@ -50,7 +50,9 @@ class Scheduler():
         self.type = type
         for task in tasks: task.scheduler = type
         self.previous_job = self.get_highest_priority(0)
-        self.output_log = {time: [] for time in range(self.start, self.end+1)}
+
+        #Output_log format: key=time value=[type, end_time, task_name, job_id]
+        self.output_log = {time: [] for time in range(0, self.end+1)}
 
     def start_msg(self):
         print("TODO")
@@ -92,13 +94,16 @@ class Scheduler():
         for i in range(len(self.tasks)):
             if self.tasks[i].next_deadline == time:
                 if not self.tasks[i].completed:
-                    self.output_log[time].append("Deadline", None, self.tasks[i].id, self.tasks[i].job_nb)
-                    #return True
+                    if time >= slef.start:
+                        self.output_log[time].append(
+                        ["Deadline", None, self.tasks[i].id, self.tasks[i].job_nb])
                 else:
                     self.tasks[i].next_deadline += self.tasks[i].period
                     self.tasks[i].job_nb += 1
                     self.tasks[i].completed = False
-                    self.output_log[time].append(["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
+                    if time >= self.start:
+                        self.output_log[time].append(
+                        ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
         return False
 
     def schedule(self, time, task):
@@ -106,32 +111,32 @@ class Scheduler():
         if task.already_done == task.wcet:
             task.completed = True
             task.already_done = 0
-            self.output_log[task.job_start].append(
-            ["Execution", time+1, task.id, task.job_nb])
+            if time >= self.start:
+                self.output_log[task.job_start].append(["Execution", time+1, task.id, task.job_nb])
         return task
 
 
     def scheduling(self):
-        for time in range(self.start, self.end):
-            if self.check_deadlines(time):
-                return
+        for time in range(0, self.end):
+            self.check_deadlines(time)
             for task in self.tasks:
                 task.update_priority(time)
             for i in range(len(self.tasks)):
                 if time == self.tasks[i].offset:
-                    self.output_log[time].append(["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
+                    if time >= self.start:
+                        self.output_log[time].append(["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
             new_job = self.get_highest_priority(time)
             if new_job is not None:
                 if new_job.id is not self.previous_job.id:
                     if not self.previous_job.completed:
-                        self.output_log[self.previous_job.job_start].append(
-                        ["Execution", time, self.previous_job.id, self.previous_job.job_nb])
-                        self.preemptions += 1
+                        if time >= self.start and self.previous_job.job_start > self.start:
+                            self.output_log[self.previous_job.job_start].append(
+                            ["Execution", time, self.previous_job.id, self.previous_job.job_nb])
+                            self.preemptions += 1
                     new_job.job_start = time
                     self.previous_job = self.schedule(time, new_job)
                 else:
                     self.previous_job = self.schedule(time, new_job)
-        self.print_log()
 
 ##########################################################################################
 
@@ -261,12 +266,13 @@ def main():
                     sys.exit("Invalid start and end times")
                 #try:
                 if sys.argv[1] == "edf":
-                    edf_sceduler = Scheduler(tasks_list, start, end, "edf")
+                    sceduler = Scheduler(tasks_list, start, end, "edf")
                 else:
-                    edf_sceduler = Scheduler(tasks_list, start, end, "llf")
-                edf_sceduler.start_msg()
-                edf_sceduler.scheduling()
-                edf_sceduler.end_msg()
+                    sceduler = Scheduler(tasks_list, start, end, "llf")
+                sceduler.start_msg()
+                sceduler.scheduling()
+                sceduler.print_log()
+                sceduler.end_msg()
                 #except:
                     #print("Error during the scheduling")
             else:
