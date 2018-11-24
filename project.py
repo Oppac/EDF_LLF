@@ -61,28 +61,25 @@ class Scheduler():
     def end_msg(self):
         print("End: {} preemptions".format(self.preemptions))
 
+    #Print on empty ?
+    #Print task starting before the start time ?
     def print_log(self):
         for key, values in self.output_log.items():
-            if len(values) > 1:
-                values = sorted(values, key=lambda x: x[3])
-                for i in range(len(values)):
-                    self.write_log(key, values[i])
-            elif len(values) == 1:
-                self.write_log(key, values[0])
-
-    def write_log(self, key, log):
-        if log[0] == "Deadline":
-            print("{}: Job {}J{} misses a deadline".format( key, log[2], log[3]))
-        elif log[0] == "Arrival":
-            print("{}: Arrival of job {}J{}".format(key, log[2], log[3]))
-        elif log[0] == "Execution":
-            print("{}-{}: {}J{} ".format(key, log[1], log[2], log[3]))
-
+            values = sorted(values, key=lambda x: x[3])
+            for v in values:
+                if v[0] == "Deadline":
+                    print("{}: Job {}J{} misses a deadline".format( key, v[2], v[3]))
+            for v in values:
+                if v[0] == "Arrival":
+                    print("{}: Arrival of job {}J{}".format(key, v[2], v[3]))
+            for v in values:
+                if v[0] == "Execution":
+                    print("{}-{}: {}J{} ".format(key, v[1], v[2], v[3]))
 
     def get_highest_priority(self, time):
         priorities = self.tasks[:]
         try:
-            hp_task = min(priorities, key=lambda task: task.priority)
+            hp_task = min(priorities, key=lambda task: task.id)
             while hp_task.completed or time < hp_task.offset:
                 priorities.remove(hp_task)
                 hp_task = min(priorities, key=lambda task: task.priority)
@@ -94,17 +91,16 @@ class Scheduler():
         for i in range(len(self.tasks)):
             if self.tasks[i].next_deadline == time:
                 if not self.tasks[i].completed:
-                    if time >= slef.start:
+                    if time >= self.start:
                         self.output_log[time].append(
                         ["Deadline", None, self.tasks[i].id, self.tasks[i].job_nb])
                 else:
-                    self.tasks[i].next_deadline += self.tasks[i].period
                     self.tasks[i].job_nb += 1
-                    self.tasks[i].completed = False
                     if time >= self.start:
                         self.output_log[time].append(
                         ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
-        return False
+                self.tasks[i].next_deadline += self.tasks[i].period
+                self.tasks[i].completed = False
 
     def schedule(self, time, task):
         task.already_done += 1
@@ -115,19 +111,23 @@ class Scheduler():
                 self.output_log[task.job_start].append(["Execution", time+1, task.id, task.job_nb])
         return task
 
-
+    ## SAME TASK COMPLETED BUG
     def scheduling(self):
         for time in range(0, self.end):
             self.check_deadlines(time)
+
             for task in self.tasks:
                 task.update_priority(time)
+
             for i in range(len(self.tasks)):
                 if time == self.tasks[i].offset:
                     if time >= self.start:
-                        self.output_log[time].append(["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
+                        self.output_log[time].append(
+                        ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
+
             new_job = self.get_highest_priority(time)
             if new_job is not None:
-                if new_job.id is not self.previous_job.id:
+                if new_job is not self.previous_job:
                     if not self.previous_job.completed:
                         if time >= self.start and self.previous_job.job_start > self.start:
                             self.output_log[self.previous_job.job_start].append(
