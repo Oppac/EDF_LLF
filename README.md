@@ -2,8 +2,6 @@
 EDF vs LLF
 
 TODO:
-- Make EDF scheduler work
-
-- Add start time
-- Compute laxity and add LLF scheduler
+- Correct priority calculation
+- Change the output format (Print at the end instead?)
 - GUI (matplotlib?)
