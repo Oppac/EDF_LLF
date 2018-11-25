@@ -2,9 +2,16 @@ import random
 import sys
 import time
 from math import gcd
+try:
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import_ok = True
+except:
+    ("The graphical part require the libraries matplotlib and numpy")
 
 class Task():
-    def __init__(self, offset, wcet, period, id):
+    '''Task class that stores a task'''
+    def __init__(self, offset=0, wcet=0, period=0, id="None"):
         self.offset = offset
         self.wcet = wcet
         self.period = period
@@ -19,8 +26,9 @@ class Task():
         self.priority = 0
 
     def update_priority(self, time):
+        '''Compute the priority of the current job'''
         if self.scheduler == "edf":
-            self.priority = self.period - self.already_done
+            self.priority = self.next_deadline
         elif self.scheduler == "llf":
             self.priority = self.next_deadline - (time + (self.wcet - self.already_done))
 
@@ -49,10 +57,13 @@ class Scheduler():
         self.tasks = tasks
         self.type = type
         for task in tasks: task.scheduler = type
-        self.previous_job = self.get_highest_priority(0)
+        self.previous_job = Task(0, 0)
 
         #Output_log format: key=time value=[type, end_time, task_name, job_id]
         self.output_log = {time: [] for time in range(0, self.end+1)}
+
+    def draw_schedule(self):
+        pass
 
     def start_msg(self):
         print("TODO")
@@ -77,9 +88,10 @@ class Scheduler():
                     print("{}-{}: {}J{} ".format(key, v[1], v[2], v[3]))
 
     def get_highest_priority(self, time):
+        '''Get the job that has the priority'''
         priorities = self.tasks[:]
         try:
-            hp_task = min(priorities, key=lambda task: task.id)
+            hp_task = min(priorities, key=lambda task: task.priority)
             while hp_task.completed or time < hp_task.offset:
                 priorities.remove(hp_task)
                 hp_task = min(priorities, key=lambda task: task.priority)
@@ -88,6 +100,7 @@ class Scheduler():
             return None
 
     def check_deadlines(self, time):
+        '''Check if a job missed its deadline or if its time for a new job'''
         for i in range(len(self.tasks)):
             if self.tasks[i].next_deadline == time:
                 if not self.tasks[i].completed:
@@ -108,11 +121,12 @@ class Scheduler():
             task.completed = True
             task.already_done = 0
             if time >= self.start:
+                print(str(time), task.id)
                 self.output_log[task.job_start].append(["Execution", time+1, task.id, task.job_nb])
         return task
 
-    ## SAME TASK COMPLETED BUG
     def scheduling(self):
+        '''Main time loop, choose each time which job to schedule and control the flow of the scheduler'''
         for time in range(0, self.end):
             self.check_deadlines(time)
 
@@ -130,6 +144,7 @@ class Scheduler():
                 if new_job is not self.previous_job:
                     if not self.previous_job.completed:
                         if time >= self.start and self.previous_job.job_start > self.start:
+                            print("Prev " + str(time) + " " + self.previous_job.id)
                             self.output_log[self.previous_job.job_start].append(
                             ["Execution", time, self.previous_job.id, self.previous_job.job_nb])
                             self.preemptions += 1
@@ -266,13 +281,16 @@ def main():
                     sys.exit("Invalid start and end times")
                 #try:
                 if sys.argv[1] == "edf":
-                    sceduler = Scheduler(tasks_list, start, end, "edf")
+                    scheduler = Scheduler(tasks_list, start, end, "edf")
                 else:
-                    sceduler = Scheduler(tasks_list, start, end, "llf")
-                sceduler.start_msg()
-                sceduler.scheduling()
-                sceduler.print_log()
-                sceduler.end_msg()
+                    scheduler = Scheduler(tasks_list, start, end, "llf")
+                scheduler.start_msg()
+                scheduler.scheduling()
+                scheduler.print_log()
+                scheduler.end_msg()
+
+                if import_ok:
+                    scheduler.draw_schedule()
                 #except:
                     #print("Error during the scheduling")
             else:
@@ -284,6 +302,6 @@ def main():
         options_error()
 
 if __name__ == "__main__":
-    #start_time = time.time()
+    start_time = time.time()
     main()
-    #print("--- %s seconds ---" %(time.time() - start_time))
+    print("--- %s seconds ---" %(time.time() - start_time))
