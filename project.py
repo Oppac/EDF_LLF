@@ -62,10 +62,31 @@ class Scheduler():
 
         #Output_log format: key=time value=[type, end_time, task_id, job_id]
         self.output_log = {time: [] for time in range(0, self.end+1)}
+        #Data format: [task_id, start_time, end_time]
+        self.plot_values = []
 
     def draw_schedule(self):
         draw_tasks = [task.id for task in self.tasks]
         time = [i for i in range(self.start, self.end+1)]
+
+        fig = plt.figure()
+        for v in self.plot_values:
+            task = v[0]
+            start_time = v[1]
+            end_time = v[2]
+            plt.fill_between([task, task], [start_time, start_time], [end_time, end_time],
+            edgecolor='k', linewidth=0.5)
+
+        ax = fig.add_subplot(111)
+        ax.yaxis.grid()
+        ax.set_xticks(range(0, len(draw_tasks)+1))
+        ax.set_yticks(range(self.start, self.end+1))
+
+        plt.xlabel('tasks')
+        plt.ylabel('time')
+        plt.title("{}  Scheduler".format(self.type.title()))
+        plt.legend()
+        plt.show()
 
     def start_msg(self):
         print("TODO")
@@ -88,6 +109,7 @@ class Scheduler():
             for v in values:
                 if v[0] == "Execution":
                     print("{}-{}: {}J{} ".format(key, v[1], v[2], v[3]))
+                    self.plot_values.append([int(v[2][-1]), key, v[1]])
 
     def get_highest_priority(self, time):
         '''Get the job that has the priority'''
