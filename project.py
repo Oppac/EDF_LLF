@@ -3,11 +3,11 @@ import sys
 import time
 from math import gcd
 try:
-    import numpy as np
     import matplotlib.pyplot as plt
     import_ok = True
 except:
-    ("The graphical part require the libraries matplotlib and numpy")
+    import_ok = False
+    ("The graphical part require the libraries matplotlib")
 
 class Task():
     '''Task class that stores a task'''
@@ -57,13 +57,15 @@ class Scheduler():
         self.tasks = tasks
         self.type = type
         for task in tasks: task.scheduler = type
-        self.previous_job = Task(0, 0)
+        self.previous_job = Task()
+        self.just_completed = Task()
 
-        #Output_log format: key=time value=[type, end_time, task_name, job_id]
+        #Output_log format: key=time value=[type, end_time, task_id, job_id]
         self.output_log = {time: [] for time in range(0, self.end+1)}
 
     def draw_schedule(self):
-        pass
+        draw_tasks = [task.id for task in self.tasks]
+        time = [i for i in range(self.start, self.end+1)]
 
     def start_msg(self):
         print("TODO")
@@ -103,48 +105,46 @@ class Scheduler():
         '''Check if a job missed its deadline or if its time for a new job'''
         for i in range(len(self.tasks)):
             if self.tasks[i].next_deadline == time:
+                self.tasks[i].job_nb += 1
+                self.just_completed = self.tasks[i]
                 if not self.tasks[i].completed:
                     if time >= self.start:
                         self.output_log[time].append(
                         ["Deadline", None, self.tasks[i].id, self.tasks[i].job_nb])
                 else:
-                    self.tasks[i].job_nb += 1
                     if time >= self.start:
                         self.output_log[time].append(
                         ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
                 self.tasks[i].next_deadline += self.tasks[i].period
+                self.tasks[i].already_done = 0
                 self.tasks[i].completed = False
 
     def schedule(self, time, task):
         task.already_done += 1
-        if task.already_done == task.wcet:
+        self.just_completed = Task()
+        if task.already_done >= task.wcet:
             task.completed = True
-            task.already_done = 0
             if time >= self.start:
-                print(str(time), task.id)
                 self.output_log[task.job_start].append(["Execution", time+1, task.id, task.job_nb])
         return task
 
     def scheduling(self):
         '''Main time loop, choose each time which job to schedule and control the flow of the scheduler'''
         for time in range(0, self.end):
-            self.check_deadlines(time)
 
             for task in self.tasks:
                 task.update_priority(time)
 
             for i in range(len(self.tasks)):
-                if time == self.tasks[i].offset:
-                    if time >= self.start:
-                        self.output_log[time].append(
-                        ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
+                if time == self.tasks[i].offset and time >= self.start:
+                    self.output_log[time].append(
+                    ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
 
             new_job = self.get_highest_priority(time)
             if new_job is not None:
                 if new_job is not self.previous_job:
-                    if not self.previous_job.completed:
+                    if not self.previous_job.completed and not self.previous_job is self.just_completed:
                         if time >= self.start and self.previous_job.job_start > self.start:
-                            print("Prev " + str(time) + " " + self.previous_job.id)
                             self.output_log[self.previous_job.job_start].append(
                             ["Execution", time, self.previous_job.id, self.previous_job.job_nb])
                             self.preemptions += 1
@@ -152,6 +152,10 @@ class Scheduler():
                     self.previous_job = self.schedule(time, new_job)
                 else:
                     self.previous_job = self.schedule(time, new_job)
+
+                self.check_deadlines(time)
+
+
 
 ##########################################################################################
 
