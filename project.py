@@ -64,6 +64,8 @@ class Scheduler():
         self.output_log = {time: [] for time in range(0, self.end+1)}
         #Data format: [task_id, start_time, end_time]
         self.plot_values = []
+        self.plot_arrival = []
+        self.plot_deadlines = []
 
     def draw_schedule(self):
         tasks_plot = [int(task.id[-1]) for task in self.tasks]
@@ -77,6 +79,16 @@ class Scheduler():
             #plt.fill_between([start_time, task], [start_time, task],
             #                 [end_time, task],
             #                 edgecolor='b', linewidth=0.5)
+
+        for v in self.plot_deadlines:
+            missed_task = v[0]
+            deadline_time = v[1]
+            plt.plot([deadline_time], [missed_task], marker='x', color='r')
+
+        for v in self.plot_arrival:
+            finished_task = v[0]
+            arrival_time = v[1]
+            plt.plot([arrival_time], [finished_task], marker='o', color='g')
 
         plt.grid()
         plt.xticks(range(self.start, self.end+1))
@@ -103,9 +115,11 @@ class Scheduler():
             for v in values:
                 if v[0] == "Deadline":
                     print("{}: Job {}J{} misses a deadline".format( key, v[2], v[3]))
+                    self.plot_deadlines.append([int(v[2][-1]), key])
             for v in values:
                 if v[0] == "Arrival":
                     print("{}: Arrival of job {}J{}".format(key, v[2], v[3]))
+                    self.plot_arrival.append([int(v[2][-1]), key])
             for v in values:
                 if v[0] == "Execution":
                     print("{}-{}: {}J{} ".format(key, v[1], v[2], v[3]))
