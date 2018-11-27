@@ -99,6 +99,7 @@ class Scheduler():
         plt.yticks(range(0, len(tasks_plot)))
         plt.xlabel("Time")
         plt.ylabel("Tasks")
+        plt.gca().invert_yaxis()
 
         plt.title("{}  Scheduler".format(self.type.title()))
         if output:
@@ -181,7 +182,6 @@ class Scheduler():
                     ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
 
             new_job = self.get_highest_priority(time)
-            print(str(time) + ": " + new_job.id + " ==> " + str(new_job.already_done))
             if new_job is not None:
                 if new_job is not self.previous_job:
                     if (not self.previous_job.completed and
@@ -195,7 +195,6 @@ class Scheduler():
                     new_job.job_start = time
                     self.previous_job = self.schedule(time, new_job)
                 else:
-                    print(str(time) + ": " + new_job.id + " ==> " + str(new_job.already_done))
                     self.previous_job = self.schedule(time, new_job)
 
                 self.check_deadlines(time)
