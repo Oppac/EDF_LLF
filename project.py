@@ -329,32 +329,32 @@ def main():
                         raise
                 except:
                     sys.exit("Invalid start and end times")
-                #try:
-                if sys.argv[1] == "edf":
-                    scheduler = Scheduler(tasks_list, start, end, "edf")
-                else:
-                    scheduler = Scheduler(tasks_list, start, end, "llf")
-                scheduler.start_msg()
-                scheduler.scheduling()
-                scheduler.print_log()
-                scheduler.end_msg()
-
-                if len(sys.argv) > 5:
-                    if import_ok:
-                        if "draw" in sys.argv and "save" in sys.argv:
-                            file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
-                            scheduler.draw_schedule(True, file_name)
-                        elif "draw" in sys.argv:
-                            scheduler.draw_schedule(True, False)
-                        elif "save" in sys.argv:
-                            file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
-                            scheduler.draw_schedule(False, file_name)
-                        else:
-                            print("Graphic options: draw (show schedule plotter) | save (save plot)")
+                try:
+                    if sys.argv[1] == "edf":
+                        scheduler = Scheduler(tasks_list, start, end, "edf")
                     else:
-                        print("Please install matplotlib to use the schedule plotter")
-                #except:
-                    #print("Error during the scheduling")
+                        scheduler = Scheduler(tasks_list, start, end, "llf")
+                    scheduler.start_msg()
+                    scheduler.scheduling()
+                    scheduler.print_log()
+                    scheduler.end_msg()
+
+                    if len(sys.argv) > 5:
+                        if import_ok:
+                            if "draw" in sys.argv and "save" in sys.argv:
+                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
+                                scheduler.draw_schedule(True, file_name)
+                            elif "draw" in sys.argv:
+                                scheduler.draw_schedule(True, False)
+                            elif "save" in sys.argv:
+                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
+                                scheduler.draw_schedule(False, file_name)
+                            else:
+                                print("Graphic options: draw (show schedule plotter) | save (save plot)")
+                        else:
+                            print("Please install matplotlib to use the schedule plotter")
+                except:
+                    print("Error during the scheduling")
             else:
                 print("Usage: python project.py edf|llf input_file start stop")
         else:
