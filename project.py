@@ -7,7 +7,7 @@ try:
     import_ok = True
 except:
     import_ok = False
-    ("The graphical part require the libraries matplotlib")
+    print("The graphical part require matplotlib")
 
 class Task():
     '''Task class that stores a task'''
@@ -66,24 +66,24 @@ class Scheduler():
         self.plot_values = []
 
     def draw_schedule(self):
-        draw_tasks = [task.id for task in self.tasks]
+        tasks_plot = [int(task.id[-1]) for task in self.tasks]
         time = [i for i in range(self.start, self.end+1)]
 
-        fig = plt.figure()
         for v in self.plot_values:
             task = v[0]
             start_time = v[1]
             end_time = v[2]
-            plt.fill_between([task, task], [start_time, start_time], [end_time, end_time],
-            edgecolor='k', linewidth=0.5)
+            plt.plot([start_time, end_time], [task, task], color='b')
+            #plt.fill_between([start_time, task], [start_time, task],
+            #                 [end_time, task],
+            #                 edgecolor='b', linewidth=0.5)
 
-        ax = fig.add_subplot(111)
-        ax.yaxis.grid()
-        ax.set_xticks(range(0, len(draw_tasks)+1))
-        ax.set_yticks(range(self.start, self.end+1))
+        plt.grid()
+        plt.xticks(range(self.start, self.end+1))
+        plt.yticks(range(0, len(tasks_plot)))
+        plt.xlabel("Time")
+        plt.ylabel("Tasks")
 
-        plt.xlabel('tasks')
-        plt.ylabel('time')
         plt.title("{}  Scheduler".format(self.type.title()))
         plt.legend()
         plt.show()
@@ -294,7 +294,7 @@ def main():
             else:
                 print("Usage: python project.py gen nb_tasks utility output_file")
 
-        #EDF scheduler option
+        #EDF and LLF schedulers option
         elif (str(sys.argv[1]) == "edf") or (str(sys.argv[1] == "llf")):
             if len(sys.argv) > 4:
                 get_data(sys.argv[2], tasks_list)
@@ -328,6 +328,6 @@ def main():
         options_error()
 
 if __name__ == "__main__":
-    start_time = time.time()
+    #start_time = time.time()
     main()
-    print("--- %s seconds ---" %(time.time() - start_time))
+    #print("--- %s seconds ---" %(time.time() - start_time))
