@@ -7,7 +7,7 @@ try:
     import_ok = True
 except:
     import_ok = False
-    print("The graphical part require matplotlib")
+    print("Warning: matplotlib is required to use the schedule plotter")
 
 class Task():
     '''Task class that stores a task'''
@@ -66,8 +66,9 @@ class Scheduler():
         self.plot_values = []
         self.plot_arrival = []
         self.plot_deadlines = []
+        self.plot_preemptions = []
 
-    def draw_schedule(self):
+    def draw_schedule(self, show, output):
         tasks_plot = [int(task.id[-1]) for task in self.tasks]
         time = [i for i in range(self.start, self.end+1)]
 
@@ -76,9 +77,11 @@ class Scheduler():
             start_time = v[1]
             end_time = v[2]
             plt.plot([start_time, end_time], [task, task], color='b')
-            #plt.fill_between([start_time, task], [start_time, task],
-            #                 [end_time, task],
-            #                 edgecolor='b', linewidth=0.5)
+
+        for v in self.plot_preemptions:
+            interrupted_task = v[0]
+            preemption_time = v[1]
+            plt.plot([preemption_time], [interrupted_task], marker="v", color='orange')
 
         for v in self.plot_deadlines:
             missed_task = v[0]
@@ -90,6 +93,7 @@ class Scheduler():
             arrival_time = v[1]
             plt.plot([arrival_time], [finished_task], marker='o', color='g')
 
+
         plt.grid()
         plt.xticks(range(self.start, self.end+1))
         plt.yticks(range(0, len(tasks_plot)))
@@ -97,8 +101,10 @@ class Scheduler():
         plt.ylabel("Tasks")
 
         plt.title("{}  Scheduler".format(self.type.title()))
-        plt.legend()
-        plt.show()
+        if output:
+            plt.savefig("{}_{}.png".format(self.type, output),  format='png')
+        if show:
+            plt.show()
 
     def start_msg(self):
         print("TODO")
@@ -107,8 +113,6 @@ class Scheduler():
     def end_msg(self):
         print("End: {} preemptions".format(self.preemptions))
 
-    #Print on empty ?
-    #Print task starting before the start time ?
     def print_log(self):
         for key, values in self.output_log.items():
             values = sorted(values, key=lambda x: x[3])
@@ -177,20 +181,24 @@ class Scheduler():
                     ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
 
             new_job = self.get_highest_priority(time)
+            print(str(time) + ": " + new_job.id + " ==> " + str(new_job.already_done))
             if new_job is not None:
                 if new_job is not self.previous_job:
-                    if not self.previous_job.completed and not self.previous_job is self.just_completed:
+                    if (not self.previous_job.completed and
+                    not self.previous_job is self.just_completed and
+                    not self.previous_job.id == "None"):
                         if time >= self.start and self.previous_job.job_start > self.start:
                             self.output_log[self.previous_job.job_start].append(
                             ["Execution", time, self.previous_job.id, self.previous_job.job_nb])
                             self.preemptions += 1
+                            self.plot_preemptions.append([int(self.previous_job.id[-1]), time])
                     new_job.job_start = time
                     self.previous_job = self.schedule(time, new_job)
                 else:
+                    print(str(time) + ": " + new_job.id + " ==> " + str(new_job.already_done))
                     self.previous_job = self.schedule(time, new_job)
 
                 self.check_deadlines(time)
-
 
 
 ##########################################################################################
@@ -281,7 +289,8 @@ def edf_utility(wcets, periods):
 def options_error():
     print("Edf interval: python project.py edf_interval input_file")
     print("Generator: python project.py gen nb_tasks utility output_file")
-    print("Scheduler: python project.py edf|llf input_file start stop")
+    print("Scheduler: python project.py edf|llf input_file start stop [graphic_options]")
+    print("Graphic options: draw (show schedule plotter) | save (save plot)")
 
 def main():
     tasks_list = []
@@ -319,20 +328,34 @@ def main():
                         raise
                 except:
                     sys.exit("Invalid start and end times")
-                #try:
-                if sys.argv[1] == "edf":
-                    scheduler = Scheduler(tasks_list, start, end, "edf")
-                else:
-                    scheduler = Scheduler(tasks_list, start, end, "llf")
-                scheduler.start_msg()
-                scheduler.scheduling()
-                scheduler.print_log()
-                scheduler.end_msg()
+                try:
+                    if sys.argv[1] == "edf":
+                        scheduler = Scheduler(tasks_list, start, end, "edf")
+                    else:
+                        scheduler = Scheduler(tasks_list, start, end, "llf")
+                    scheduler.start_msg()
+                    scheduler.scheduling()
+                    scheduler.print_log()
+                    scheduler.end_msg()
 
-                if import_ok:
-                    scheduler.draw_schedule()
-                #except:
-                    #print("Error during the scheduling")
+                    if len(sys.argv) > 5:
+                        if import_ok:
+                            if len(sys.argv) < 7 and sys.argv[5] == "draw":
+                                scheduler.draw_schedule(True, False)
+                            elif len(sys.argv) < 7 and sys.argv[5] == "save":
+                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
+                                scheduler.draw_schedule(False, file_name)
+                            elif len(sys.argv) > 6 and \
+                                 (sys.argv[5] == "draw" and sys.argv[6] == "save" or \
+                                 sys.argv[5] == "save" and sys.argv[6] == "draw"):
+                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
+                                scheduler.draw_schedule(True, file_name)
+                            else:
+                                print("Graphic options: draw (show schedule plotter) | save (save plot)")
+                        else:
+                            print("Please install matplotlib to use the schedule plotter")
+                except:
+                    print("Error during the scheduling")
             else:
                 print("Usage: python project.py edf|llf input_file start stop")
         else:
