@@ -166,7 +166,6 @@ class Scheduler():
         if task.already_done >= task.wcet:
             task.completed = True
             if time >= self.start:
-                print(str(time) + " represent")
                 self.output_log[task.job_start].append(["Execution", time+1, task.id, task.job_nb])
         return task
 
@@ -189,7 +188,6 @@ class Scheduler():
                        not self.previous_job is self.just_completed and \
                        not self.previous_job.id == "None":
                         if time >= self.start and self.previous_job.job_start >= self.start:
-                            print(str(time) + " represent")
                             self.output_log[self.previous_job.job_start].append(
                             ["Execution", time, self.previous_job.id, self.previous_job.job_nb])
                             self.preemptions += 1
