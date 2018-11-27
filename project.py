@@ -166,6 +166,7 @@ class Scheduler():
         if task.already_done >= task.wcet:
             task.completed = True
             if time >= self.start:
+                print(str(time) + " represent")
                 self.output_log[task.job_start].append(["Execution", time+1, task.id, task.job_nb])
         return task
 
@@ -184,10 +185,11 @@ class Scheduler():
             new_job = self.get_highest_priority(time)
             if new_job is not None:
                 if new_job is not self.previous_job:
-                    if (not self.previous_job.completed and
-                    not self.previous_job is self.just_completed and
-                    not self.previous_job.id == "None"):
-                        if time >= self.start and self.previous_job.job_start > self.start:
+                    if not self.previous_job.completed and \
+                       not self.previous_job is self.just_completed and \
+                       not self.previous_job.id == "None":
+                        if time >= self.start and self.previous_job.job_start >= self.start:
+                            print(str(time) + " represent")
                             self.output_log[self.previous_job.job_start].append(
                             ["Execution", time, self.previous_job.id, self.previous_job.job_nb])
                             self.preemptions += 1
@@ -197,7 +199,7 @@ class Scheduler():
                 else:
                     self.previous_job = self.schedule(time, new_job)
 
-                self.check_deadlines(time)
+            self.check_deadlines(time)
 
 
 ##########################################################################################
@@ -327,32 +329,32 @@ def main():
                         raise
                 except:
                     sys.exit("Invalid start and end times")
-                try:
-                    if sys.argv[1] == "edf":
-                        scheduler = Scheduler(tasks_list, start, end, "edf")
-                    else:
-                        scheduler = Scheduler(tasks_list, start, end, "llf")
-                    scheduler.start_msg()
-                    scheduler.scheduling()
-                    scheduler.print_log()
-                    scheduler.end_msg()
+                #try:
+                if sys.argv[1] == "edf":
+                    scheduler = Scheduler(tasks_list, start, end, "edf")
+                else:
+                    scheduler = Scheduler(tasks_list, start, end, "llf")
+                scheduler.start_msg()
+                scheduler.scheduling()
+                scheduler.print_log()
+                scheduler.end_msg()
 
-                    if len(sys.argv) > 5:
-                        if import_ok:
-                            if "draw" in sys.argv and "save" in sys.argv:
-                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
-                                scheduler.draw_schedule(True, file_name)
-                            elif "draw" in sys.argv:
-                                scheduler.draw_schedule(True, False)
-                            elif "save" in sys.argv:
-                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
-                                scheduler.draw_schedule(False, file_name)
-                            else:
-                                print("Graphic options: draw (show schedule plotter) | save (save plot)")
+                if len(sys.argv) > 5:
+                    if import_ok:
+                        if "draw" in sys.argv and "save" in sys.argv:
+                            file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
+                            scheduler.draw_schedule(True, file_name)
+                        elif "draw" in sys.argv:
+                            scheduler.draw_schedule(True, False)
+                        elif "save" in sys.argv:
+                            file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
+                            scheduler.draw_schedule(False, file_name)
                         else:
-                            print("Please install matplotlib to use the schedule plotter")
-                except:
-                    print("Error during the scheduling")
+                            print("Graphic options: draw (show schedule plotter) | save (save plot)")
+                    else:
+                        print("Please install matplotlib to use the schedule plotter")
+                #except:
+                    #print("Error during the scheduling")
             else:
                 print("Usage: python project.py edf|llf input_file start stop")
         else:
