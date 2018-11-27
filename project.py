@@ -340,16 +340,14 @@ def main():
 
                     if len(sys.argv) > 5:
                         if import_ok:
-                            if len(sys.argv) < 7 and sys.argv[5] == "draw":
-                                scheduler.draw_schedule(True, False)
-                            elif len(sys.argv) < 7 and sys.argv[5] == "save":
-                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
-                                scheduler.draw_schedule(False, file_name)
-                            elif len(sys.argv) > 6 and \
-                                 (sys.argv[5] == "draw" and sys.argv[6] == "save" or \
-                                 sys.argv[5] == "save" and sys.argv[6] == "draw"):
+                            if "draw" in sys.argv and "save" in sys.argv:
                                 file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
                                 scheduler.draw_schedule(True, file_name)
+                            elif "draw" in sys.argv:
+                                scheduler.draw_schedule(True, False)
+                            elif "save" in sys.argv:
+                                file_name = sys.argv[2][sys.argv[2].find("/")+1:sys.argv[2].find(".")]
+                                scheduler.draw_schedule(False, file_name)
                             else:
                                 print("Graphic options: draw (show schedule plotter) | save (save plot)")
                         else:
