@@ -198,8 +198,6 @@ class Scheduler():
                     self.output_log[time].append(
                     ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
 
-            #print(time)
-            #print([[task.completed, task.id, task.priority, task.job_nb] for task in self.tasks])
             new_job = self.get_highest_priority(time)
             if not new_job.id == "None":
                 if not new_job.id == self.previous_job.id:
