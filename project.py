@@ -5,6 +5,7 @@ import copy
 from math import gcd
 try:
     import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
     import_ok = True
 except:
     import_ok = False
@@ -109,8 +110,25 @@ class Scheduler():
         plt.gca().xaxis.set_label_coords(1.02, -0.025)
         plt.ylabel("Tasks")
         plt.gca().invert_yaxis()
-        plt.legend((values, premp, completed, arrival, deadline,),
-                   ("Values", "Preemptions", "Completed", "Arrivals", "Deadlines"),
+
+        labels_handles = []
+        labels_names = []
+        if self.plot_values:
+            labels_handles.append(values,)
+            labels_names.append("Values")
+        if self.plot_preemptions:
+            labels_handles.append(premp,)
+            labels_names.append("Preemptions")
+        if self.plot_completed:
+            labels_handles.append(completed,)
+            labels_names.append("Completed")
+        if self.plot_arrival:
+            labels_handles.append(arrival,)
+            labels_names.append("Arrivals")
+        if self.plot_deadlines:
+            labels_handles.append(deadline,)
+            labels_names.append("Deadlines")
+        plt.legend((labels_handles), (labels_names),
                    bbox_to_anchor=(-0.1, -0.15, 1.2, 0), loc="lower left",
                    mode="expand", borderaxespad=0, ncol=5)
 
