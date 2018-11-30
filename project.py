@@ -1,6 +1,7 @@
 import random
 import sys
 import time
+import copy
 from math import gcd
 try:
     import matplotlib.pyplot as plt
@@ -67,40 +68,51 @@ class Scheduler():
         self.plot_arrival = []
         self.plot_deadlines = []
         self.plot_preemptions = []
+        self.plot_completed = []
 
     def draw_schedule(self, show, output):
         '''Draw the scheduler with matplotlib'''
         tasks_plot = [int(task.id[-1]) for task in self.tasks]
-        time = [i for i in range(self.start, self.end+1)]
+        time = [i for i in range(self.start, self.end)]
 
         for v in self.plot_values:
             task = v[0]
             start_time = v[1]
             end_time = v[2]
-            plt.plot([start_time, end_time], [task, task], color='b')
+            values, = plt.plot([start_time, end_time], [task, task], color='b')
 
         for v in self.plot_preemptions:
             interrupted_task = v[0]
             preemption_time = v[1]
-            plt.plot([preemption_time], [interrupted_task], marker="v", color='orange')
+            premp, = plt.plot([preemption_time], [interrupted_task], marker="v", color='orange')
+
+        for v in self.plot_completed:
+            finished_task = v[0]
+            finished_time = v[1]
+            completed, = plt.plot([finished_time], [finished_task], marker='<', color='darkcyan')
+
+        for v in self.plot_arrival:
+            arrival_task = v[0]
+            arrival_time = v[1]
+            arrival, = plt.plot([arrival_time], [arrival_task], marker='o', color='g')
 
         for v in self.plot_deadlines:
             missed_task = v[0]
             deadline_time = v[1]
-            plt.plot([deadline_time], [missed_task], marker='x', color='r')
-
-        for v in self.plot_arrival:
-            finished_task = v[0]
-            arrival_time = v[1]
-            plt.plot([arrival_time], [finished_task], marker='o', color='g')
+            deadline, = plt.plot([deadline_time], [missed_task], marker='x', color='r')
 
 
         plt.grid()
-        plt.xticks(range(self.start, self.end+1))
+        plt.xticks(range(self.start, self.end+1, 1))
         plt.yticks(range(0, len(tasks_plot)))
-        plt.xlabel("Time")
+        plt.xlabel("Time", ha='left')
+        plt.gca().xaxis.set_label_coords(1.02, -0.025)
         plt.ylabel("Tasks")
         plt.gca().invert_yaxis()
+        plt.legend((values, premp, completed, arrival, deadline,),
+                   ("Values", "Preemptions", "Completed", "Arrivals", "Deadlines"),
+                   bbox_to_anchor=(-0.1, -0.15, 1.2, 0), loc="lower left",
+                   mode="expand", borderaxespad=0, ncol=5)
 
         plt.title("{}  Scheduler".format(self.type.title()))
         if output:
@@ -168,12 +180,15 @@ class Scheduler():
             task.completed = True
             if time >= self.start:
                 self.output_log[task.job_start].append(["Execution", time+1, task.id, task.job_nb])
+                self.plot_completed.append([int(task.id[-1]), time+1])
         return task
 
 
     def scheduling(self):
-        '''Main time loop, choose each time which job to schedule and if a preemption happens'''
+        '''Main time loop, choose each time which job to schedule and check if a preemption happens'''
         for time in range(0, self.end):
+
+            self.check_deadlines(time)
 
             for task in self.tasks:
                 task.update_priority(time)
@@ -183,9 +198,11 @@ class Scheduler():
                     self.output_log[time].append(
                     ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
 
+            #print(time)
+            #print([[task.completed, task.id, task.priority, task.job_nb] for task in self.tasks])
             new_job = self.get_highest_priority(time)
             if not new_job.id == "None":
-                if new_job is not self.previous_job:
+                if not new_job.id == self.previous_job.id:
                     if not self.previous_job.completed and \
                        not self.previous_job.id == "None":
                         if time >= self.start and self.previous_job.job_start >= self.start:
@@ -194,12 +211,13 @@ class Scheduler():
                             self.preemptions += 1
                             self.plot_preemptions.append([int(self.previous_job.id[-1]), time])
                     new_job.job_start = time
-                    self.previous_job = self.schedule(time, new_job)
+                    self.previous_job = copy.copy(self.schedule(time, new_job))
                 else:
-                    self.previous_job = self.schedule(time, new_job)
+                    self.previous_job = copy.copy(self.schedule(time, new_job))
 
-            self.check_deadlines(time)
-
+        self.check_deadlines(self.end)
+        self.output_log[self.previous_job.job_start].append(
+        ["Execution", self.end, self.previous_job.id, self.previous_job.job_nb])
 
 
 ##########################################################################################
