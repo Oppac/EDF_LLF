@@ -216,6 +216,10 @@ class Scheduler():
                     self.previous_job = copy.copy(self.schedule(time, new_job))
 
         self.check_deadlines(self.end)
+        if not self.previous_job.completed:
+            self.output_log[self.previous_job.job_start].append(
+            ["Execution", self.end, self.previous_job.id, self.previous_job.job_nb])
+
 
 ##########################################################################################
 
