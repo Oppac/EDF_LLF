@@ -5,24 +5,28 @@ import copy
 from math import gcd
 try:
     import matplotlib.pyplot as plt
-    from matplotlib.lines import Line2D
     import_ok = True
 except:
     import_ok = False
     print("Warning: matplotlib is required to use the schedule plotter")
 
 class Task():
-    '''Class that stores a task'''
     def __init__(self, offset=0, wcet=0, period=0, id="None"):
         self.offset = offset
         self.wcet = wcet
         self.period = period
+        #The next deadline to meet
         self.next_deadline = period + offset
+        #The name of the task
         self.id = id
 
+        #If the current job is finished or not
         self.completed = False
+        #Computation time already performed
         self.already_done = 0
+        #Time at which the current job started
         self.job_start = 0
+        #Number of the current job
         self.job_nb = 0
         self.scheduler = ""
         self.priority = 0
@@ -52,18 +56,24 @@ class Task():
 #######################################################################################
 
 class Scheduler():
-    '''Schduler class that perform the scheduling'''
     def __init__(self, tasks, start, end, type):
         self.preemptions = 0
         self.start = start
         self.end = end
+        #List of all the tasks to schedule
         self.tasks = tasks
+        #Edf or llf schduler
         self.type = type
+        #Initialize the type of scheduler
         for task in tasks: task.scheduler = type
+        #The job scheduled before the current one (used for preemptions)
         self.previous_job = Task()
 
+        #Console output
         #Output_log format: key=time value=[type, end_time, task_id, job_id]
         self.output_log = {time: [] for time in range(0, self.end+1)}
+
+        #GUI output
         #Data format: [task_id, start_time, end_time]
         self.plot_values = []
         self.plot_arrival = []
@@ -76,6 +86,7 @@ class Scheduler():
         tasks_plot = [int(task.id[-1]) for task in self.tasks]
         time = [i for i in range(self.start, self.end)]
 
+        #Plot the values to the canvas
         for v in self.plot_values:
             task = v[0]
             start_time = v[1]
@@ -102,7 +113,7 @@ class Scheduler():
             deadline_time = v[1]
             deadline, = plt.plot([deadline_time], [missed_task], marker='x', color='r')
 
-
+        #Set up the grid and the axes
         plt.grid()
         plt.xticks(range(self.start, self.end+1, 1))
         plt.yticks(range(0, len(tasks_plot)))
@@ -111,6 +122,7 @@ class Scheduler():
         plt.ylabel("Tasks")
         plt.gca().invert_yaxis()
 
+        #Set up the legend
         labels_handles = []
         labels_names = []
         if self.plot_values:
@@ -132,6 +144,7 @@ class Scheduler():
                    bbox_to_anchor=(-0.1, -0.15, 1.2, 0), loc="lower left",
                    mode="expand", borderaxespad=0, ncol=5)
 
+        #Save or show depending on options
         plt.title("{}  Scheduler".format(self.type.title()))
         if output:
             plt.savefig("{}_{}.png".format(self.type, output),  format='png')
@@ -145,6 +158,8 @@ class Scheduler():
     def end_msg(self):
         print("End: {} preemptions".format(self.preemptions))
 
+    #Output to the console the data received during scheduling
+    #Print in order deadlines > arrivals > execution
     def print_log(self):
         '''Print the scheduler output on the console'''
         for key, values in self.output_log.items():
@@ -162,8 +177,10 @@ class Scheduler():
                     print("{}-{}: {}J{} ".format(key, v[1], v[2], v[3]))
                     self.plot_values.append([int(v[2][-1]), key, v[1]])
 
+    #The highest priority is the smallest priority value
+    #The while loop prevent from returning an already completed task
     def get_highest_priority(self, time):
-        '''Get the job that has the priority'''
+        '''Get the job that has the highest priority'''
         priorities = self.tasks[:]
         try:
             hp_task = min(priorities, key=lambda task: task.priority)
@@ -174,6 +191,8 @@ class Scheduler():
         except:
             return Task()
 
+    #Check if a deadline has been missed or the a task period has ended
+    #Then initialize a new job for the task
     def check_deadlines(self, time):
         '''Check if a job missed its deadline or if its time for a new job'''
         for i in range(len(self.tasks)):
@@ -191,6 +210,7 @@ class Scheduler():
                 self.tasks[i].already_done = 0
                 self.tasks[i].completed = False
 
+    #Schedule the given task
     def schedule(self, time, task):
         '''Schedule the given task'''
         task.already_done += 1
@@ -202,6 +222,7 @@ class Scheduler():
         return task
 
 
+    #
     def scheduling(self):
         '''Main time loop, choose each time which job to schedule and check if a preemption happens'''
         for time in range(0, self.end):
@@ -211,13 +232,14 @@ class Scheduler():
             for task in self.tasks:
                 task.update_priority(time)
 
+            #Arrivals that indicate the start of the task
             for i in range(len(self.tasks)):
                 if time == self.tasks[i].offset and time >= self.start:
                     self.output_log[time].append(
                     ["Arrival", None, self.tasks[i].id, self.tasks[i].job_nb])
 
-            #print(time)
-            #print([[task.completed, task.id, task.priority, task.job_nb] for task in self.tasks])
+            #Check if a preemption happened by comparing the current job to the previous one
+            #Warning: Previous job must be a copy, normal assignement pass by reference (<- the bug was here)
             new_job = self.get_highest_priority(time)
             if not new_job.id == "None":
                 if not new_job.id == self.previous_job.id:
@@ -233,6 +255,7 @@ class Scheduler():
                 else:
                     self.previous_job = copy.copy(self.schedule(time, new_job))
 
+        #End the current task when the end of scheduling is reached
         self.check_deadlines(self.end)
         if not self.previous_job.completed:
             self.output_log[self.previous_job.job_start].append(
@@ -241,14 +264,13 @@ class Scheduler():
 
 ##########################################################################################
 
-
 def get_data(input_file, tasks_list):
-    ''' Parse the data from the given input file.'''
+    ''' Parse the data from the given input file and create the tasks list'''
     try:
         with open(input_file, 'r') as file:
             for line in file:
                 line = line.replace(" ", "")
-                line = line.replace("\n", "")
+                line = line.replace("\r\n", "")
                 line_arr = line.split(";")
 
                 if len(line_arr) == 3:
