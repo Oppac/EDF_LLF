@@ -43,9 +43,6 @@ class Task():
         if (self.wcet > self.period):
             print("Warning: Worst case execution time of task {} is superior" \
              " to the period".format(self.id))
-        if (self.offset > self.period):
-            print("Warning: The offset of task {} is superior" \
-            " to the period".format(self.id))
         if (self.wcet == 0):
             print("Warning: The worst execution time of task {} is equal" \
             " to zero".format(self.id))
@@ -332,8 +329,9 @@ def new_system(tasks):
     periods = []
     for i in range(tasks):
         offsets.append(random.randint(0, 10))
-        wcets.append(random.randint(1, 25))
-        periods.append(random.randint(8, 50))
+        curr_wcet = random.randint(1, 20)
+        wcets.append(curr_wcet)
+        periods.append(random.randint(curr_wcet+5, 40))
         gen_utility = edf_utility(wcets, periods)
     return offsets, wcets, periods, gen_utility
 
@@ -350,7 +348,7 @@ def options_error():
     print("Edf interval: python project.py edf_interval input_file")
     print("Generator: python project.py gen nb_tasks utility output_file")
     print("Scheduler: python project.py edf|llf input_file start stop [graphic_options]")
-    print("Graphic options: draw (show schedule plotter) | save (save plot)")
+    print("Graphic options: draw (show schedule plotter) | save (save plot in current directory)")
 
 def main():
     tasks_list = []
@@ -372,7 +370,7 @@ def main():
                     nb_tasks = int(sys.argv[2])
                     goal_utility = float(sys.argv[3])/100
                 except:
-                    sys.exit("Number of tasks and utility must be numbers")
+                    sys.exit("Error: {} and {} must be both numbers".format(str(sys.argv[2]), str(sys.argv[3])))
                 generator(nb_tasks, goal_utility, sys.argv[4])
             else:
                 print("Usage: python project.py gen nb_tasks utility output_file")
@@ -387,7 +385,7 @@ def main():
                     if (start < 0) or (end < start):
                         raise
                 except:
-                    sys.exit("Invalid start and end times")
+                    sys.exit("Error: Invalid start and end times")
                 if sys.argv[1] == "edf":
                     scheduler = Scheduler(tasks_list, start, end, "edf")
                 else:
